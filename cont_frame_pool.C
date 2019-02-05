@@ -275,11 +275,39 @@ unsigned char ContFramePool::rotate_right(unsigned char _mask, int _iterator)
 void ContFramePool::release_frames(unsigned long _first_frame_no)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-    assert(false);
+	ContFramePool *p=NULL;
+    for(p=ContFramePool::Head; p!=NULL; p=p->nextObject) {
+        if( (_first_frame_no >= p->base_frame_no) && (_first_frame_no < (p->base_frame_no + p->nframes) ) ) {
+            //TODO: Make the release_frame fucntion return 1 and do error checking
+            *p.release_frame(_first_frame_no);
+            return;
+        }
+    }
+	assert(p==NULL);
+}
+
+void ContFramePool::release_frame(unsigned long _first_frame_no)
+{
+    // TODO: IMPLEMENTATION NEEEDED!
+	map_index= (_first_frame_no - base_frame_no)/4;
+	frame_state_index = (_first_frame_no - base_frame_no)%4;
+	//is it head of frame??
+	assert(((bitmap[map_index]<<(frame_state_index))&0xC0)==0x40);
+	
+	for(int i= map_index; i < nframes; i++){
+		bitmap[i] |= rotate_right(0xC0,i);
+		nFreeFrames++;
+		if(((bitmap[i+1]<<((i+1)%4))&0xC0)==0xC0)
+			break;
+	}
 }
 
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-    assert(false);
+	unsigned long nbits_per_frame= (FRAME_SIZE*8);
+    unsigned long nbits_for_n_frames= (_n_frames*2);
+    unsigned long ninfo_frames_needed = (nbits_for_n_frames/nbits_per_frame) + ( ( (nbits_for_n_frames)%nbits_per_frame) > 0 ? 1 : 0 );
+    return ninfo_frames_needed;
 }
+

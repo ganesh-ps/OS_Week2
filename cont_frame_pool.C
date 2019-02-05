@@ -133,11 +133,11 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_info_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-	nFreeFrames    = _n_frames;   //till allocation freeframes is number of frames
+    nFreeFrames    = _n_frames;   //till allocation freeframes is number of frames
     base_frame_no  = _base_frame_no; // Where does the frame pool start
-    nframes;       = _n_frames; // Size of the frame pool
-    info_frame_no; = _info_frame_no;// Where do we store the management information?
-    ninfo_frames;  = _n_info_frames; // Number of information frames
+    nframes       = _n_frames; // Size of the frame pool
+    info_frame_no = _info_frame_no;// Where do we store the management information?
+    ninfo_frames  = _n_info_frames; // Number of information frames
 		
     assert(nframes<=(FRAME_SIZE*8*ninfo_frames/2));//In the info frame every 2 bits represent 1 frame. So all nframes must fit in  the given size for bitmap 
 	
@@ -150,7 +150,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     }
 	
 	// Everything ok. Proceed to mark all states in the bitmap
-    for(int i=0; i*4 < _nframes; i++) {
+    for(int i=0; (i*4) < nframes; i++) {
         bitmap[i] = 0xFF;//4 frames per char so iterate over evry 4 frames
     }
     
@@ -188,7 +188,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
 	
 	unsigned long available_frames=0, newbase=0,offset_frames=_n_frames;
 	
-	int i,map_index,state index;
+	int i,map_index,state_index;
 
 	for(i = base_frame_no; i < (base_frame_no+nframes); i++){
 		map_index   = i/4;
@@ -209,7 +209,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
 
 bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_frames)
 {
-	int i,map_index,state index;
+	int i,map_index,state_index;
 	unsigned long available_frames=0,newbase=0;
 	for(i=_base_frame_no;i<_base_frame_no+_n_frames; i++){
 		map_index=i/4;
@@ -233,24 +233,24 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
 	unsigned long start_frame = _base_frame_no - base_frame_no;
 	if(_n_frames>0){
 		assert(isContigious( start_frame, _n_frames));
-		allocate_frames(start_frame,_n_frames)
+		allocate_frames(start_frame,_n_frames);
 	}
 	
 }
 
 void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _n_frames)
 {
-	bitmap[start_frame/4] &= rotate_right(0x7F,start_frame);
-	for(int i=start_frame+1; i<=start_frame+_n_frames; i++){
+	bitmap[_base_frame_no/4] &= rotate_right(0x7F,_base_frame_no);
+	for(int i=_base_frame_no+1; i<=_base_frame_no+_n_frames; i++){
 		assert(0xC0==(bitmap[i/4]<<(i%4))&0xC0);		
 		bitmap[i/4] &= rotate_right(0x3F,i);
 	}
-	nFreeFrames -= _n_frames
+	nFreeFrames -= _n_frames;
 }
 
-static unsigned char ContFramePool::rotate_right(unsigned char _mask, int _iterator)
+unsigned char ContFramePool::rotate_right(unsigned char _mask, int _iterator)
 {
-	return (_mask<<((4-_iterator%4)*2))|(_mask>>((_iterator%4)*2))
+	return (_mask<<((4-_iterator%4)*2))|(_mask>>((_iterator%4)*2));
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no)

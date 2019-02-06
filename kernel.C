@@ -75,7 +75,7 @@ int main() {
 
     /* ---- PROCESS POOL -- */
 
-/*
+
     unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
 
     unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
@@ -86,7 +86,7 @@ int main() {
                                    n_info_frames);
     
     process_mem_pool.mark_inaccessible(MEM_HOLE_START_FRAME, MEM_HOLE_SIZE);
-*/
+
     /* -- MOST OF WHAT WE NEED IS SETUP. THE KERNEL CAN START. */
 
     Console::puts("Hello World!\n");
@@ -94,6 +94,8 @@ int main() {
     /* -- TEST MEMORY ALLOCATOR */
     
     test_memory(&kernel_mem_pool, 32);
+    test_memory(&process_mem_pool, 32);
+    //process_mem_pool.get_frames(10);    
 
     /* ---- Add code here to test the frame pool implementation. */
     
@@ -106,6 +108,7 @@ int main() {
     /* -- WE DO THE FOLLOWING TO KEEP THE COMPILER HAPPY. */
     return 1;
 }
+
 
 void test_memory(ContFramePool * _pool, unsigned int _allocs_to_go) {
     Console::puts("alloc_to_go = "); Console::puti(_allocs_to_go); Console::puts("\n");

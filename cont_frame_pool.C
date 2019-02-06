@@ -186,36 +186,52 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
 unsigned long ContFramePool::get_frames(unsigned int _n_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-    assert(_n_frames<nFreeFrames);
+	unsigned int required_no_of_frames =_n_frames;
+	unsigned long contiguous_available_frames=0, new_head=0;
+	int i,map_index,right_shift_index;
+	unsigned char frame_state;
+	bool contiguous;
+
+	if(required_no_of_frames>nFreeFrames){
+	    Console::puts("ERROR:Required no of frames more than available");
+	    assert(false);
+	}   
 	
-	unsigned long available_frames=0, newbase=0,offset_frames=_n_frames;
-	
-	int i,map_index,state_index;
+	Console::puts("get_frames nframes: ");Console::putui(_n_frames);Console::puts("\n");
 
 	for(i = 0; i < nframes; i++){
-		Console::puts("i: ");Console::putui(i);Console::puts("\t");\
-		Console::puts("available: ");Console::putui(available_frames);Console::puts("\t");
-		Console::puts("conditon: ");Console::putui((bitmap[map_index]<<state_index)&0xC0);Console::puts("\t");
-		Console::puts("newbase: ");Console::putui(newbase);Console::puts("\n");
+	    //Console::puts("i: ");Console::putui(i);Console::puts("\t");
+	    /*Console::puts("available: ");Console::putui(available_frames);Console::puts("\t");*/
+	    //Console::puts("conditon: ");Console::putui((bitmap[map_index]<<state_index)&0xC0);Console::puts("\n");
+	    /*Console::puts("newbase: ");Console::putui(newbase);Console::puts("\n");*/
 
-		map_index   = i/4;
-		state_index = (i%4)*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)  
-		if(0xC0==((bitmap[map_index]<<state_index)&0xC0))
-			available_frames++;
-		else
-			available_frames=0;
-		if(available_frames==_n_frames){
-			newbase=i-_n_frames+1;
-			Console::puts("newbase: ");Console::putui(newbase);Console::puts("\n");
-			break;
-		}
+	    map_index   = i/4;
+	    right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)
+  
+	    Console::puts("get_frame map_index: ");Console::putui(map_index);Console::puts("\t");
+	    Console::puts("get_frame state_index: ");Console::putui(right_shift_index);Console::puts("\t");
+	    Console::puts("get_frame bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");
+
+	    frame_state = (bitmap[map_index]>>right_shift_index) & 0x03; // shift to last two bits and read
+
+	    if(frame_state == 0x03) //11 implies free/available
+	    	contiguous_available_frames++;
+	    else
+		contiguous_available_frames=0;
+
+	    if(contiguous_available_frames == required_no_of_frames){
+		new_head = i-required_no_of_frames + 1 + base_frame_no; // tail - sequence length + 1
+		contiguous = true;
+		Console::puts("new_head: ");Console::putui(new_head);Console::puts("\n");
+		break;
+	    }
 	}
 	
-	assert(newbase!=0);
+	assert(contiguous== true);
 	
-	allocate_frames(newbase,offset_frames);
+	allocate_frames(new_head,required_no_of_frames);
 
-	return (newbase);
+	return (new_head);
 }
 
 bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_frames)
@@ -223,9 +239,10 @@ bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_f
 	int i,map_index,state_index;
 	unsigned long available_frames=0,newbase=0;
 	for(i=_base_frame_no;i<_base_frame_no+_n_frames; i++){
+		//Console::puts("Entered mark_inaccessible: ")//;Console::putui(_base_frame_no);Console::puts("\t");
 		map_index=i/4;
 		state_index=(i%4)*2;// i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)  
-		if(0xC0==(bitmap[map_index]<<state_index)&0xC0)
+		if(0xC0==((bitmap[map_index]<<state_index)&0xC0))
 			available_frames++;
 		else
 			available_frames=0;
@@ -241,6 +258,7 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
                                       unsigned long _n_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!
+	Console::puts("Entered mark_inaccessible: ");//`Console::putui(_base_frame_no);Console::puts("\t");Console::putui(_n_frames);Console::puts("\n\n");
 	unsigned long start_frame = _base_frame_no - base_frame_no;
 	if(_n_frames>0){
 		assert(isContigious( start_frame, _n_frames));
@@ -251,14 +269,33 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
 
 void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _n_frames)
 {
-	Console::puts("_base_frame_no: ");Console::putui(_base_frame_no);Console::puts("\n");
+	unsigned long head_of_seq = _base_frame_no - base_frame_no;
+	unsigned long length_of_seq = _n_frames;
+	int i,map_index,right_shift_index;
+	unsigned char frame_state;
 
-	bitmap[_base_frame_no/4] &= rotate_right(0x7F,_base_frame_no);
-	for(int i=_base_frame_no+1; i<_base_frame_no+_n_frames; i++){
-		Console::puts("i_alloc_frames: ");Console::putui(i);Console::puts("\t");
-		Console::puts("bitmap[1]: ");Console::putui(bitmap[1]);Console::puts("\n");
-		assert(0xC0==((bitmap[i/4]<<((i%4)*2))&0xC0));		
-		bitmap[i/4] &= rotate_right(0x3F,i);
+	Console::puts("head_of_seq: ");Console::putui(head_of_seq);Console::puts("\n");
+
+	for(int i = head_of_seq; i< head_of_seq + length_of_seq ; i++){
+		map_index   = i/4;
+		right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)
+  
+		Console::puts("allocate map_index: ");Console::putui(map_index);Console::puts("\t");
+		Console::puts("allocate state_index: ");Console::putui(right_shift_index);Console::puts("\t");
+		Console::puts("allocate bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");
+
+		frame_state = (bitmap[map_index]>>right_shift_index) & 0x03; // shift to last two bits and read
+
+		assert(0x03==frame_state);//exit if not free='11'	
+
+		if(i==head_of_seq)
+		    bitmap[map_index] = bitmap[map_index] & rotate_right(0x7F,i); //mark '01'= head
+		else
+		    bitmap[map_index] = bitmap[map_index] & rotate_right(0x3F,i); //mark '00'= occupied
+	    
+		Console::puts("allocate rot right: ");Console::putui(rotate_right(0x3F,i));Console::puts("\n");	
+		Console::puts("allocate i_alloc_frames: ");Console::putui(i);Console::puts("\t");
+		Console::puts("allocate bitmap[i]: ");Console::putui(bitmap[i/4]);Console::puts("\n");
 	}
 	nFreeFrames -= _n_frames;
 }
@@ -266,48 +303,78 @@ void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _
 unsigned char ContFramePool::rotate_right(unsigned char _mask, int _iterator)
 {
 	unsigned char i = (unsigned char) _iterator;
-	Console::puts("_mask: ");Console::putui(_mask);Console::puts("\n");
-	Console::puts("_iterator: ");Console::putui(_iterator);Console::puts("\n");
-	Console::puts("rot right: ");Console::putui((_mask<<((4-i%4)*2))&(0xFF)|(_mask>>((i%4)*2)));Console::puts("\n");
-	return (_mask<<((4-i%4)*2))&(0xFF)|(_mask>>((i%4)*2));
+	unsigned int left_shift_by, right_shift_by;
+
+	left_shift_by = (4-i%4)*2;
+	right_shift_by = (i%4)*2;
+
+	return ((_mask<<left_shift_by)&(0xFF))|(_mask>>right_shift_by);
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-	ContFramePool *p=NULL;
-    for(p=ContFramePool::Head; p!=NULL; p=p->nextObject) {
+    ContFramePool *p=NULL;
+    for(p=ContFramePool::head_pointer; p!=NULL; p=p->next_pool) {
         if( (_first_frame_no >= p->base_frame_no) && (_first_frame_no < (p->base_frame_no + p->nframes) ) ) {
             //TODO: Make the release_frame fucntion return 1 and do error checking
-            *p.release_frame(_first_frame_no);
+            (*p).release_frames_of_pool(_first_frame_no);
             return;
         }
     }
 	assert(p==NULL);
 }
 
-void ContFramePool::release_frame(unsigned long _first_frame_no)
+void ContFramePool::release_frames_of_pool(unsigned long _first_frame_no)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-	map_index= (_first_frame_no - base_frame_no)/4;
-	frame_state_index = (_first_frame_no - base_frame_no)%4;
-	//is it head of frame??
-	assert(((bitmap[map_index]<<(frame_state_index))&0xC0)==0x40);
+	unsigned long start_frame = _first_frame_no - base_frame_no;
+	int i,map_index,right_shift_index;
+	unsigned char frame_state;
+
+	Console::puts("release_frames start_frame: ");Console::putui(start_frame);Console::puts("\n");
 	
-	for(int i= map_index; i < nframes; i++){
-		bitmap[i] |= rotate_right(0xC0,i);
-		nFreeFrames++;
-		if(((bitmap[i+1]<<((i+1)%4))&0xC0)==0xC0)
-			break;
+	//is it head of frame??
+	Console::putui(bitmap[map_index]);Console::puts("\n");
+
+	//mark rest of sequence free
+	for(int i= start_frame; i < nframes; i++){  
+	    map_index   = i/4;
+	    right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)
+  
+/*	    Console::puts("release map_index: ");Console::putui(map_index);Console::puts("\t");
+	    Console::puts("release state_index: ");Console::putui(i%4);Console::puts("\t");
+	    Console::puts("release bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");*/
+
+	    frame_state = (bitmap[map_index]>>right_shift_index) & 0x03; // shift to last two bits and read
+
+	    if(i==start_frame){
+
+		assert(0x01==frame_state);//exit if not head='01'	
+	    }
+
+	    if((frame_state==0x03)|(frame_state==0x01)){ 
+		Console::puts("Breaking from releasing\n");
+		break;
+	    }
+	    //assert(frame_state==0x02);
+	    bitmap[map_index] = bitmap[map_index] ^ rotate_right(0x3F,i);
+
+	    nFreeFrames++;
+
+/*	    Console::puts("bitmap after release: ");Console::putui(bitmap[i]);Console::puts("\t");
+	    Console::puts("Free frames after release: ");Console::putui(nFreeFrames);Console::puts("\n");*/
 	}
 }
+
 
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-	unsigned long nbits_per_frame= (FRAME_SIZE*8);
+    unsigned long nbits_per_frame= (FRAME_SIZE*8);
     unsigned long nbits_for_n_frames= (_n_frames*2);
     unsigned long ninfo_frames_needed = (nbits_for_n_frames/nbits_per_frame) + ( ( (nbits_for_n_frames)%nbits_per_frame) > 0 ? 1 : 0 );
+    //Console::puts("ninfoframes proc pool: ");Console::putui(ninfo_frames_needed);Console::puts("\n");
     return ninfo_frames_needed;
 }
 

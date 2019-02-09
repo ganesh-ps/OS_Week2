@@ -94,9 +94,9 @@ int main() {
     /* -- TEST MEMORY ALLOCATOR */
     
     test_memory(&kernel_mem_pool, 32);
-	test_memory(&process_mem_pool, 32);
+    test_memory(&process_mem_pool, 32);
 	
-	test_invalid_states(&kernel_mem_pool,&process_mem_pool);
+    test_invalid_states(&kernel_mem_pool,&process_mem_pool);
 	
 	//test_mark_inaccessible();
 	
@@ -140,7 +140,8 @@ void test_memory(ContFramePool * _pool, unsigned int _allocs_to_go) {
 
 void test_invalid_states(ContFramePool * _kpool, ContFramePool* _ppool) {
 	Console::puts(" INVALID TEST "); /*Console::puti(_allocs_to_go);*/ Console::puts("\n");
-    for(int i=3;i<5;i++){
+	int i=0;
+	//Change i to test the different states
 		switch(i){ 
 			case 0:
 				_kpool->mark_inaccessible(1023,5);
@@ -155,5 +156,4 @@ void test_invalid_states(ContFramePool * _kpool, ContFramePool* _ppool) {
 				_ppool->mark_inaccessible(4000,5);
 				Console::puts("ERROR_CASE_3"); break;
 		}
-    }
 }

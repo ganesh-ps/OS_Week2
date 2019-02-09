@@ -231,6 +231,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
 	return (new_head);
 }
 
+//Similar to function above the return of the iterator(i.e at break;) in get frames is new_head here it is true or false
 bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_frames)
 {
 	int i,map_index,right_shift_index;
@@ -256,7 +257,8 @@ bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_f
     
 	return false;
 }
-
+//IMPLEMENTED AS DESCRIBED IN THE DETAILED IMPLEMENTATION SECTION ABOVE
+//Just checks contiguity and sends the base frame number and n frames to allocate frames
 void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
                                       unsigned long _n_frames)
 {
@@ -270,6 +272,7 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
 	
 }
 
+//If its the first frame mark it as head else mark as allocated. Do this only if free
 void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _n_frames)
 {
 	unsigned long head_of_seq = _base_frame_no - base_frame_no;
@@ -303,6 +306,7 @@ void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _
 	nFreeFrames -= _n_frames;
 }
 
+//used to rotate/circular shift masks by 2 bits aka frame bits 
 unsigned char ContFramePool::rotate_right(unsigned char _mask, int _iterator)
 {
 	unsigned char i = (unsigned char) _iterator;
@@ -314,6 +318,7 @@ unsigned char ContFramePool::rotate_right(unsigned char _mask, int _iterator)
 	return ((_mask<<left_shift_by)&(0xFF))|(_mask>>right_shift_by);
 }
 
+//Identify pool by checking if within start and end frame number of the pool
 void ContFramePool::release_frames(unsigned long _first_frame_no)
 {
     // TODO: IMPLEMENTATION NEEEDED!
@@ -328,6 +333,8 @@ void ContFramePool::release_frames(unsigned long _first_frame_no)
 	assert(p==NULL);
 }
 
+//Pool specific. IF the first frame is not head exit.
+//Else mark everything free till end of sequence (i.e till new head or free frame is seen)
 void ContFramePool::release_frames_of_pool(unsigned long _first_frame_no)
 {
     // TODO: IMPLEMENTATION NEEEDED!
@@ -370,7 +377,7 @@ void ContFramePool::release_frames_of_pool(unsigned long _first_frame_no)
 	}
 }
 
-
+//Explained in header file and document. Please refer
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!

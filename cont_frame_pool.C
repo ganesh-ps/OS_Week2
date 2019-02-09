@@ -139,11 +139,11 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     info_frame_no = _info_frame_no;// Where do we store the management information?
     ninfo_frames  = _n_info_frames; // Number of information frames
     
-    if(ninfo_frames==0) ninfo_frames=1;
+    if(ninfo_frames==0) ninfo_frames=1; //implies given info frame number corresponds to the 1 info frame 
   
     assert(nframes<=(FRAME_SIZE*8*ninfo_frames/2));//In the info frame every 2 bits represent 1 frame. So all nframes must fit in  the given size for bitmap 
 	
-	// If _info_frame_no is zero then we keep management info in the first
+    // If _info_frame_no is zero then we keep management info in the first
     //frame, else we use the provided frame to keep management info
     if(info_frame_no == 0) {
         bitmap = (unsigned char *) (base_frame_no * FRAME_SIZE);
@@ -151,12 +151,12 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
         bitmap = (unsigned char *) (info_frame_no * FRAME_SIZE);
     }
 	
-	// Everything ok. Proceed to mark all states in the bitmap
+    // Everything ok. Proceed to mark all states to free in the bitmap
     for(int i=0; (i*4) < nframes; i++) {
         bitmap[i] = 0xFF;//4 frames per char so iterate over evry 4 frames
     }
     
-    // Mark the first frame as being used if it is being used
+    // Mark the ninfo frames as being used if it is being used
     if(_info_frame_no == 0) {
 		if(ninfo_frames==0){
 			bitmap[0] = 0x3F;
@@ -172,7 +172,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     if(NULL==ContFramePool::head_pointer){
         ContFramePool::head_pointer=this;//add first object/pool to the list
     }
-    else {//if not first addd to end of list
+    else {//if not first add to end of list
         ContFramePool *p=ContFramePool::head_pointer;
         while(NULL!=p->next_pool) {
             p=p->next_pool;
@@ -192,32 +192,29 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
 	unsigned char frame_state;
 	bool contiguous;
 
-	if(required_no_of_frames>nFreeFrames){
+	if(required_no_of_frames>=nFreeFrames){
 	    Console::puts("ERROR:Required no of frames more than available");
 	    assert(false);
 	}   
 	
-	Console::puts("get_frames nframes: ");Console::putui(_n_frames);Console::puts("\n");
+	//Console::puts("get_frames nframes: ");Console::putui(_n_frames);Console::puts("\n");
+
+	//Iterate over entire bitmap to find n contiguously available frames
 
 	for(i = 0; i < nframes; i++){
-	    //Console::puts("i: ");Console::putui(i);Console::puts("\t");
-	    /*Console::puts("available: ");Console::putui(available_frames);Console::puts("\t");*/
-	    //Console::puts("conditon: ");Console::putui((bitmap[map_index]<<state_index)&0xC0);Console::puts("\n");
-	    /*Console::puts("newbase: ");Console::putui(newbase);Console::puts("\n");*/
-
-	    map_index   = i/4;
-	    right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)
+	    map_index   = i/4; //index for bitmap
+	    right_shift_index = (3-(i%4))*2; // i%4 gives frame number within the byte; 2 is shift value(number of bits per frame)
   
-	    Console::puts("get_frame map_index: ");Console::putui(map_index);Console::puts("\t");
+	    /*Console::puts("get_frame map_index: ");Console::putui(map_index);Console::puts("\t");
 	    Console::puts("get_frame state_index: ");Console::putui(right_shift_index);Console::puts("\t");
-	    Console::puts("get_frame bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");
+	    Console::puts("get_frame bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");*/
 
 	    frame_state = (bitmap[map_index]>>right_shift_index) & 0x03; // shift to last two bits and read
 
 	    if(frame_state == 0x03) //11 implies free/available
-	    	contiguous_available_frames++;
+	    	contiguous_available_frames++;   // count available_frames till you hit the required value
 	    else
-		contiguous_available_frames=0;
+		contiguous_available_frames=0;  // restart count for every break in contiguous_available_frames
 
 	    if(contiguous_available_frames == required_no_of_frames){
 		new_head = i-required_no_of_frames + 1 + base_frame_no; // tail - sequence length + 1
@@ -227,22 +224,28 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
 	    }
 	}
 	
-	assert(contiguous== true);
+	assert(contiguous== true);//exit if no contiguously available frames exist
 	
-	allocate_frames(new_head,required_no_of_frames);
+	allocate_frames(new_head,required_no_of_frames);//calling to allocate the contiguous memory
 
 	return (new_head);
 }
 
 bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_frames)
 {
-	int i,map_index,state_index;
-	unsigned long available_frames=0,newbase=0;
+	int i,map_index,right_shift_index;
+	unsigned long available_frames=0;
+	unsigned char frame_state;
+
 	for(i=_base_frame_no;i<_base_frame_no+_n_frames; i++){
 		//Console::puts("Entered mark_inaccessible: ")//;Console::putui(_base_frame_no);Console::puts("\t");
 		map_index=i/4;
-		state_index=(i%4)*2;// i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)  
-		if(0xC0==((bitmap[map_index]<<state_index)&0xC0))
+		right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame) 
+
+		frame_state = (bitmap[map_index]>>right_shift_index) & 0x03; // shift to last two bits and read
+
+		//Console::puts("Entered isContigious: ");Console::putui(frame_state);Console::puts("\n");
+		if(frame_state == 0x03) //11 implies free/available
 			available_frames++;
 		else
 			available_frames=0;
@@ -250,7 +253,7 @@ bool ContFramePool::isContigious(unsigned long _base_frame_no,unsigned long _n_f
 			return true;
 		}
 	}
-	
+    
 	return false;
 }
 
@@ -258,11 +261,11 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
                                       unsigned long _n_frames)
 {
     // TODO: IMPLEMENTATION NEEEDED!
-	Console::puts("Entered mark_inaccessible: ");//`Console::putui(_base_frame_no);Console::puts("\t");Console::putui(_n_frames);Console::puts("\n\n");
+	Console::puts("Entered mark_inaccessible: \n");//`Console::putui(_base_frame_no);Console::puts("\t");Console::putui(_n_frames);Console::puts("\n\n");
 	unsigned long start_frame = _base_frame_no - base_frame_no;
 	if(_n_frames>0){
 		assert(isContigious( start_frame, _n_frames));
-		allocate_frames(start_frame,_n_frames);
+		allocate_frames(_base_frame_no,_n_frames);
 	}
 	
 }
@@ -274,15 +277,15 @@ void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _
 	int i,map_index,right_shift_index;
 	unsigned char frame_state;
 
-	Console::puts("head_of_seq: ");Console::putui(head_of_seq);Console::puts("\n");
+	//Console::puts("head_of_seq: ");Console::putui(head_of_seq);Console::puts("\n");
 
 	for(int i = head_of_seq; i< head_of_seq + length_of_seq ; i++){
 		map_index   = i/4;
 		right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)
   
-		Console::puts("allocate map_index: ");Console::putui(map_index);Console::puts("\t");
+		/*Console::puts("allocate map_index: ");Console::putui(map_index);Console::puts("\t");
 		Console::puts("allocate state_index: ");Console::putui(right_shift_index);Console::puts("\t");
-		Console::puts("allocate bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");
+		Console::puts("allocate bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");*/
 
 		frame_state = (bitmap[map_index]>>right_shift_index) & 0x03; // shift to last two bits and read
 
@@ -293,9 +296,9 @@ void ContFramePool::allocate_frames(unsigned long _base_frame_no,unsigned long _
 		else
 		    bitmap[map_index] = bitmap[map_index] & rotate_right(0x3F,i); //mark '00'= occupied
 	    
-		Console::puts("allocate rot right: ");Console::putui(rotate_right(0x3F,i));Console::puts("\n");	
+		/*Console::puts("allocate rot right: ");Console::putui(rotate_right(0x3F,i));Console::puts("\n");	
 		Console::puts("allocate i_alloc_frames: ");Console::putui(i);Console::puts("\t");
-		Console::puts("allocate bitmap[i]: ");Console::putui(bitmap[i/4]);Console::puts("\n");
+		Console::puts("allocate bitmap[i]: ");Console::putui(bitmap[i/4]);Console::puts("\n");*/
 	}
 	nFreeFrames -= _n_frames;
 }
@@ -332,17 +335,17 @@ void ContFramePool::release_frames_of_pool(unsigned long _first_frame_no)
 	int i,map_index,right_shift_index;
 	unsigned char frame_state;
 
-	Console::puts("release_frames start_frame: ");Console::putui(start_frame);Console::puts("\n");
+	//Console::puts("release_frames start_frame: ");Console::putui(start_frame);Console::puts("\n");
 	
 	//is it head of frame??
-	Console::putui(bitmap[map_index]);Console::puts("\n");
+	//Console::putui(bitmap[map_index]);Console::puts("\n");
 
 	//mark rest of sequence free
 	for(int i= start_frame; i < nframes; i++){  
 	    map_index   = i/4;
 	    right_shift_index = (3-(i%4))*2; // i%4 gives freame number within the byte; 2 is shift value(number of bits per frame)
   
-/*	    Console::puts("release map_index: ");Console::putui(map_index);Console::puts("\t");
+	    /*Console::puts("release map_index: ");Console::putui(map_index);Console::puts("\t");
 	    Console::puts("release state_index: ");Console::putui(i%4);Console::puts("\t");
 	    Console::puts("release bitmap[i/4]: ");Console::putui(bitmap[map_index]);Console::puts("\n");*/
 
@@ -354,7 +357,7 @@ void ContFramePool::release_frames_of_pool(unsigned long _first_frame_no)
 	    }
 
 	    if((frame_state==0x03)|(frame_state==0x01)){ 
-		Console::puts("Breaking from releasing\n");
+		//Console::puts("Breaking from releasing\n");
 		break;
 	    }
 	    //assert(frame_state==0x02);

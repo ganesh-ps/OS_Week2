@@ -1,0 +1,25 @@
+Å <0>   i: <7112>       conditon: <0>   i: <7113>       conditon: <0>   i: <7114
+>       conditon: <0>   i: <7115>       conditon: <0>   i: <7116>       conditon
+: <0>   i: <7117>       conditon: <0>   i: <7118>       conditon: <0>   i: <7119
+>       conditon: <0>   i: <7120>       conditon: <0>   i: <7121>       conditon
+: <0>   i: <7122>       conditon: <64>  i: <7123>       conditon: <192> i: <7124
+>       conditon: <192> i: <7125>       conditon: <0>   i: <7126>       conditon
+: <0>   i: <7127>       conditon: <0>   i: <7128>       conditon: <0>   i: <7129
+>       conditon: <0>   i: <7130>       conditon: <0>   i: <7131>       conditon
+: <0>   i: <7132>       conditon: <0>   i: <7133>       conditon: <0>   i: <7134
+>       conditon: <0>   i: <7135>       conditon: <0>   i: <7136>       conditon
+: <0>   i: <7137>       conditon: <0>   i: <7138>       conditon: <64>  i: <7139
+>       conditon: <192> i: <7140>       conditon: <192> i: <7141>       conditon
+: <0>   i: <7142>       conditon: <0>   i: <7143>       conditon: <0>   i: <7144
+>       conditon: <0>   i: <7145>       conditon: <0>   i: <7146>       conditon
+: <0>   i: <7147>       conditon: <0>   i: <7148>       conditon: <0>   i: <7149
+>       conditon: <0>   i: <7150>       conditon: <0>   i: <7151>       conditon
+: <0>   i: <7152>       conditon: <0>   i: <7153>       conditon: <0>   i: <7154
+>       conditon: <64>  i: <7155>       conditon: <192> i: <7156>       conditon
+: <192> i: <7157>       conditon: <0>   i: <7158>       conditon: <0>   i: <7159
+>       conditon: <0>   i: <7160>       conditon: <0>   i: <7161>       conditon
+: <0>   i: <7162>       conditon: <0>   i: <7163>       conditon: <0>   i: <7164
+>       conditon: <0>   i: <7165>       conditon: <0>   i: <7166>       conditon
+: <0>   i: <7167>       conditon: <0>   Assertion failed at file: cont_frame_poo
+l.C line: 217 assertion: contiguous!=-1
+

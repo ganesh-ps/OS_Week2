@@ -61,7 +61,10 @@ private:
      sequence of frames, as inaccessible.
      _base_frame_no: Number of first frame to mark as inaccessible.
      _n_frames: Number of contiguous frames to mark as inaccessible.
-     */	
+     */
+	bool isContigious(unsigned long _base_frame_no,unsigned long _n_frames);
+
+	static unsigned char rotate_right(unsigned char _mask, int _iterator);	
 	
 public:
 
@@ -104,7 +107,6 @@ public:
      If fails, returns 0.
      */
 
-	bool isContigious(unsigned long _base_frame_no,unsigned long _n_frames);
     
     void mark_inaccessible(unsigned long _base_frame_no,
                            unsigned long _n_frames);
@@ -115,7 +117,7 @@ public:
      _n_frames: Number of contiguous frames to mark as inaccessible.
      */
 	 
-	static unsigned char rotate_right(unsigned char _mask, int _iterator);
+
 	 
     static void release_frames(unsigned long _first_frame_no);
     /*

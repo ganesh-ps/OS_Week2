@@ -54,6 +54,7 @@
 /*--------------------------------------------------------------------------*/
 
 void test_memory(ContFramePool * _pool, unsigned int _allocs_to_go);
+void test_invalid_states(ContFramePool * _kpool,ContFramePool * _ppool);
 
 /*--------------------------------------------------------------------------*/
 /* MAIN ENTRY INTO THE OS */
@@ -75,7 +76,6 @@ int main() {
 
     /* ---- PROCESS POOL -- */
 
-
     unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
 
     unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
@@ -94,9 +94,14 @@ int main() {
     /* -- TEST MEMORY ALLOCATOR */
     
     test_memory(&kernel_mem_pool, 32);
-    test_memory(&process_mem_pool, 32);
-    //process_mem_pool.get_frames(10);    
-
+	test_memory(&process_mem_pool, 32);
+	
+	test_invalid_states(&kernel_mem_pool,&process_mem_pool);
+	
+	//test_mark_inaccessible();
+	
+	//test_release_free_frames()
+	
     /* ---- Add code here to test the frame pool implementation. */
     
     /* -- NOW LOOP FOREVER */
@@ -108,7 +113,6 @@ int main() {
     /* -- WE DO THE FOLLOWING TO KEEP THE COMPILER HAPPY. */
     return 1;
 }
-
 
 void test_memory(ContFramePool * _pool, unsigned int _allocs_to_go) {
     Console::puts("alloc_to_go = "); Console::puti(_allocs_to_go); Console::puts("\n");
@@ -134,3 +138,22 @@ void test_memory(ContFramePool * _pool, unsigned int _allocs_to_go) {
     }
 }
 
+void test_invalid_states(ContFramePool * _kpool, ContFramePool* _ppool) {
+	Console::puts(" INVALID TEST "); /*Console::puti(_allocs_to_go);*/ Console::puts("\n");
+    for(int i=3;i<5;i++){
+		switch(i){ 
+			case 0:
+				_kpool->mark_inaccessible(1023,5);
+				Console::puts("ERROR_CASE_0"); break;
+			case 1:
+				_ppool->mark_inaccessible(PROCESS_POOL_START_FRAME+PROCESS_POOL_SIZE-3,5);
+				Console::puts("ERROR_CASE_1"); break;
+			case 2:
+				_kpool->release_frames(512);
+				Console::puts("ERROR_CASE_2"); break;
+			case 3:
+				_ppool->mark_inaccessible(4000,5);
+				Console::puts("ERROR_CASE_3"); break;
+		}
+    }
+}
